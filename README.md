@@ -160,7 +160,12 @@ minikube start --vm-driver=none --registry-mirror=https://registry.docker-cn.com
 </pre>
 --vm-driver 本机运行 国内镜像下载docker
 
-日志
+# 启动要素
+
 <pre>
-Preparing Kubernetes v1.16.0 on Docker 1.13.1 ...
+systemctl enable kubelet.service
+systemctl start docker
+minikube start
+启动代理，访问dashboard
+kubectl proxy --address='0.0.0.0' --accept-hosts='^*$' &
 </pre>
