@@ -169,3 +169,19 @@ minikube start
 启动代理，访问dashboard
 kubectl proxy --address='0.0.0.0' --accept-hosts='^*$' &
 </pre>
+
+# docker image
+
+准备 jar包, Dockerfile, app.yaml
+<pre>
+docker build -t <docker image>:<版本> . # .代表当前目录的Dockerfile
+</pre>
+创建deployment, service
+<pre>
+kubectl create -f app.yaml
+</pre>
+查看service, pods
+<pre>
+kubectl get pods
+kubectl get service
+</pre>
