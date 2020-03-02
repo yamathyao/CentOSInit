@@ -174,12 +174,16 @@ kubectl proxy --address='0.0.0.0' --accept-hosts='^*$' &
 
 准备 jar包, Dockerfile, app.yaml
 <pre>
-docker build -t <docker image>:<版本> . # .代表当前目录的Dockerfile
+docker build -t <docker image>:<版本> . 
+# .代表当前目录的Dockerfile
 </pre>
 创建deployment, service
 <pre>
 kubectl create -f app.yaml
+kubectl create -f ./[dir] 
 </pre>
+Node port 30000-32767
+
 查看service, pods
 <pre>
 kubectl get pods
