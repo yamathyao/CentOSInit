@@ -45,7 +45,9 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: es-data-db
-provisioner: fuseim.pri/ifs
+  namespace: logging
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
 </pre>
 创建服务资源对象
 <pre>
@@ -53,7 +55,59 @@ $ kubectl create -f elasticsearch-storageclass.yaml
 $ kubectl get storageclass
 </pre>
 
-### 使用StatefulSet 创建Es Pod
+### 创建 storage pv, storageclass-pv.yaml
+<pre>
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv
+  namespace: logging
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: es-data-db
+  local:
+    path: /usr/share/elasticsearch/data/local/vol1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - minikube
+</pre>
+创建
+<pre>
+$ kubectl create -f storageclass-pv.yaml
+$ kubectl get pv -n logging
+</pre>
+
+### 创建 storage pvc, storage-pvc.yaml
+<pre>
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim
+  namespace: logging
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: es-data-db
+</pre>
+创建
+<pre>
+$ kubectl create -f storage-pvc.yaml
+$ kubectl get pvc -n logging
+</pre>
+
+### 使用 StatefulSet 创建Es Pod
 Kubernetes StatefulSet 允许我们为 Pod 分配一个稳定的标识和持久化存储，Elasticsearch 需要稳定的存储来保证 Pod 在重新调度或者重启后的数据依然不变，所以需要使用 StatefulSet 来管理 Pod。
 
 elasticsearch-statefulset.yaml
@@ -76,12 +130,12 @@ spec:
     spec: #定义Pod模板
       containers:
       - name: elasticsearch
-        image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.4.3
-        resources:
-            limits:
-              cpu: 1000m
-            requests:
-              cpu: 100m
+        image: docker.io/elasticsearch:6.5.0
+        resources: {}
+#            limits:
+#              cpu: 1000m
+#            requests:
+#              cpu: 100m
         ports:
         - containerPort: 9200
           name: rest
@@ -90,7 +144,7 @@ spec:
           name: inter-node
           protocol: TCP
         volumeMounts: #声明数据持久化目录
-        - name: data
+        - name: mypd
           mountPath: /usr/share/elasticsearch/data
         env: #定义变量
           - name: cluster.name #Elasticsearch 集群的名称
@@ -100,11 +154,17 @@ spec:
               fieldRef:
                 fieldPath: metadata.name
           - name: discovery.zen.ping.unicast.hosts #设置在 Elasticsearch 集群中节点相互连接的发现方法。
-            value: "es-cluster-0.elasticsearch,es-cluster-1.elasticsearch,es-cluster-2.elasticsearch" # 在一个namespace，EsPodDNS 域简写
+            value: "es-cluster-0.elasticsearch.logging.svc.cluster.local,es-cluster-1.elasticsearch.logging.svc.cluster.local,es-cluster-2.elasticsearch.logging.svc.cluster.local" # 在一个namespace，EsPodDNS 域简写,规则：{statefulset.name}-{0~N}.{service.name}.svc.cluster.local
           - name: discovery.zen.minimum_master_nodes #我们将其设置为(N/2) + 1，N是我们的群集中符合主节点的节点的数量。我们有3个 Elasticsearch 节点，因此我们将此值设置为2（向下舍入到最接近的整数）
             value: "2"
+          - name: node.max_local_storage_nodes
+            value: "5"
           - name: ES_JAVA_OPTS #JVM限制
             value: "-Xms512m -Xmx512m"
+      volumes:
+        - name: mypd
+          persistentVolumeClaim:
+            claimName: claim
       initContainers: #环境初始化容器
       - name: fix-permissions
         image: busybox
@@ -124,15 +184,4 @@ spec:
         command: ["sh", "-c", "ulimit -n 65536"]
         securityContext:
           privileged: true
-  volumeClaimTemplates: #定义持久化模板
-  - metadata:
-      name: data
-      labels:
-        app: elasticsearch
-    spec:
-      accessModes: [ "ReadWriteOnce" ] #设置访问模式，这意味着它只能被 mount 到单个节点上进行读写
-      storageClassName: es-data-db  #使用Storagerclass自动创建PV
-      resources:
-        requests:
-          storage: 100Gi #容量
 </pre>
