@@ -201,3 +201,58 @@ $ curl http://localhost:9200/_cluster/state?pretty
 </pre>
 
 # 部署 kibana
+<pre>
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: logging
+  labels:
+    app: kibana
+spec:
+  ports:
+  - port: 5601
+  type: NodePort
+  selector:
+    app: kibana
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: logging
+  labels:
+    app: kibana
+spec:
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: docker.io/kibana:6.5.0
+        resources: {}
+          # limits:
+          #  cpu: 1000m
+          # requests:
+          #  cpu: 100m
+        env:
+          - name: ELASTICSEARCH_URL
+            value: http://elasticsearch:9200
+        ports:
+        - containerPort: 5601
+</pre>
+创建 kibana
+<pre>
+$ kubectl create -f kibana.yaml
+service/kibana created
+deployment.apps/kibana created
+$ kubectl get pods --namespace=logging
+
+$ kubectl get svc  --namespace=logging
+</pre>
