@@ -185,3 +185,19 @@ spec:
         securityContext:
           privileged: true
 </pre>
+
+### 验证es服务是否正常
+
+将本地端口9200转发到 Elasticsearch 节点（如 es-cluster-0）对应的端口
+<pre>
+$ kubectl port-forward es-cluster-0 9200:9200 --namespace=logging
+Forwarding from 127.0.0.1:9200 -> 9200
+Forwarding from [::1]:9200 -> 9200
+</pre>
+其他一个终端
+<pre>
+$ curl http://localhost:9200/_cluster/state?pretty
+会显示 es-cluster-0, es-cluster-1, es-cluster-2 信息
+</pre>
+
+# 部署 kibana
