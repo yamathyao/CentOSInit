@@ -272,11 +272,11 @@ metadata:
     addonmanager.kubernetes.io/mode: Reconcile
 data:
   system.conf: |-
-    <system>
+    &lt;system&gt;
       root_dir /tmp/fluentd-buffers/
-    </system>
+    &lt;/system&gt;
   containers.input.conf: |-
-    <source>
+    &lt;source&gt;
       @id fluentd-containers.log     # 表示引用该日志源的唯一标识符，可用于进一步过滤和路由结构化日志数据
       @type tail                     # Fluentd 内置的指令，tail表示 Fluentd 从上次读取的位置通过 tail 不断获取数据另外一个是 http 表示通过一个 GET 来收集数据
       path /var/log/containers/*.log # tail 类型下特定参数，告诉 Fluentd 采集 /var/log/containers 目录下的日志，这是 docker 在 Kubernetes 节点上用来存储运行容器 stdout 输出日志数据的目录
@@ -286,8 +286,8 @@ data:
       tag raw.kubernetes.* # 用来将日志源与目标或者过滤器匹配的自定义字符串，Fluentd 匹配源/目标标签来路由日志数据
       format json
       read_from_head true
-    </source>
-    <match raw.kubernetes.**>
+    &lt;/source&gt;
+    &lt;match raw.kubernetes.**&gt;
       @id raw.kubernetes
       @type detect_expections
       remove_tag_prefix raw
@@ -296,39 +296,39 @@ data:
       multiline_flush_interval 5
       max_bytes 500000
       max_lines 1000
-    </match>
+    &lt;/match&gt;
   system.input.conf: |-
-    <source>
+    &lt;source&gt;
       @id journald-docker
       @type systemd
       filters [{ "_SYSTEMD_UNIT": "docker.service" }]
-      <storage>
+      &lt;storage&gt;
         @type local
         persistent true
-      </storage>
+      &lt;/storage&gt;
       read_from_head true
       tag docker
-    </source>
-    <source>
+    &lt;/source&gt;
+    &lt;source&gt;
       @id journald-kubelet
       @type systemd
       filters [{ "_SYSTEMD_UNIT": "kubelet.service" }]
-      <storage>
+      &lt;storage&gt;
         @type local
         persistent true
-      <storage>
+      &lt;storage&gt;
       read_from_head true
       tag kubelet
-    </source>
+    &lt;/source&gt;
   forward.input.conf: |-
-    <source>
+    &lt;source&gt;
       @type forward
-    </source>
+    &lt;/source&gt;
   output.conf: |-
-    <filter kubernetes.**>
+    &lt;filter kubernetes.**&gt;
       @type kubernetes_metadata
-    </filter>
-    <match **>  # 标识一个目标标签，后面是匹配日志源的正则表达式，想要捕获所有的日志并发送给 Elasticsearch，所以要配置成**
+    &lt;/filter&gt;
+    &lt;match **&gt;  # 标识一个目标标签，后面是匹配日志源的正则表达式，想要捕获所有的日志并发送给 Elasticsearch，所以要配置成**
       @id elasticsearch
       @type elasticsearch  # 输出到 Elasticsearch
       @log_level info  # 捕获日志级别 INFO 级别以上
@@ -337,7 +337,7 @@ data:
       port 9200
       logstash_format true  # Elasticsearch 服务对日志数据构建反向索引搜索，将 logstash_format 设置true，Fluentd 将会以 logstash 格式来转发结构化的日志数据
       request_timeout 30s
-      <buffer>  # Fluentd 允许在目标不可用时进行缓存，比如网络出现故障或者 Elasticsearch 不可用时。缓冲区配置也有助于降低磁盘 IO
+      &lt;buffer&gt;  # Fluentd 允许在目标不可用时进行缓存，比如网络出现故障或者 Elasticsearch 不可用时。缓冲区配置也有助于降低磁盘 IO
         @type file
         path /var/log/fluentd-buffers/kubernetes.system.buffer
         flush_mode interval
@@ -349,6 +349,6 @@ data:
         chunk_limit_size 2M
         queue_limit_length 8
         overflow_action block
-      </buffer>
-    </match>
+      &lt;/buffer&gt;
+    &lt;/match&gt;
 </pre>
