@@ -352,3 +352,129 @@ data:
       &lt;/buffer&gt;
     &lt;/match&gt;
 </pre>
+配置 docker 容器日志目录已经 docker、kubelet 应用日志收集，收集到数据经过处理后发送到 elasticsearch:9200 服务
+
+新建一个 fluentd-daemonset.yaml
+<pre>
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd-es
+  namespace: logging
+  labels:
+    k8s-app: fluentd-es
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: fluentd-es
+  labels:
+    k8s-app: fluentd-es
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - "namespaces"
+  - "pods"
+  verbs:
+  - "get"
+  - "watch"
+  - "list"
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: fluentd-es
+  labels:
+    k8s-app: fluentd-es
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+subjects:
+- kind: ServiceAccount
+  name: fluentd-es
+  namespace: logging
+  apiGroup: ""
+roleRef:
+  kind: ClusterRole
+  name: fluentd-es
+  apiGroup: ""
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-es
+  namespace: logging
+  labels:
+    k8s-app: fluentd-es
+    version: v2.0.4
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+spec:
+  selector:
+    matchLabels:
+      k8s-app: fluentd-es
+      version: v2.0.4
+  template:
+    metadata:
+      labels:
+        k8s-app: fluentd-es
+        kubernetes.io/cluster-service: "true"
+        version: v2.0.4
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      serviceAccountName: fluentd-es
+      containers:
+      - name: fluentd-es
+        images: docker.io/fluent/fluentd:latest
+        env:
+        - name: FLUENTD_ARGS
+          value: --no-supervisor -q
+        resources:
+          limits:
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: config-volume
+          mountPath: /etc/fluent/config.d
+      nodeSelector:  # 节点选择
+        beta.kubernetes.io/fluentd-ds-ready: "true"  # 节点需要这个标签才会部署收集
+      tolernations:  # 添加容忍
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: config-volume
+        configMap:
+          name: fluentd-config
+</pre>
+为节点添加标签
+<pre>
+$ kubectl get nodes --show-labels
+minikube...
+$ kubectl label nodes minikube beta.kubernetes.io/fluentd-ds-ready=true
+</pre>
+部署资源对象
+<pre>
+$ kubectl create -f fluentd-configmap.yaml
+
+$ kubectl create -f fluentd-daemonset.yaml
+</pre>
