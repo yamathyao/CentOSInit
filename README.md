@@ -174,7 +174,7 @@ kubectl proxy --address='0.0.0.0' --accept-hosts='^*$' &
 
 准备 jar包, Dockerfile, app.yaml
 <pre>
-docker build -t <docker image>:<版本> . 
+docker build -t &lt;docker image&gt;:&lt;版本&gt; . 
 # .代表当前目录的Dockerfile
 </pre>
 创建deployment, service
