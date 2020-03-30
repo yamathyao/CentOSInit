@@ -200,6 +200,13 @@ $ curl http://localhost:9200/_cluster/state?pretty
 会显示 es-cluster-0, es-cluster-1, es-cluster-2 信息
 </pre>
 
+### unable to do port forwarding: socat not found.
+
+解决办法在node节点安装socat
+<pre>
+$ yum install socat
+</pre>
+
 # 部署 kibana
 <pre>
 apiVersion: v1
