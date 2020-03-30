@@ -61,6 +61,36 @@
   service network restart
   </pre>
   
+6、磁盘扩展
+
+查看磁盘空间
+<pre>
+$ fdisk -l
+</pre>
+<pre>
+$ fdisk /dev/sda
+-- 获取帮助
+$ m
+-- 增加分区
+$ n
+-- 增加主分区，分区号 default
+$ p
+-- 起始跟结束扇区 enter 默认
+$ 
+-- 创建物理卷
+$ pvcreate /dev/sda3
+-- 如果提示找不到 /dev/sda3 ，输入partprobe
+$ partprobe
+$ pvcreate /dev/sda3
+-- vgscan查询物理卷，查询到本机物理卷 cl，扩展 cl
+$ vgextend cl /dev/sda3
+-- 扩展 lv，增加 20G
+$ lvextend -L +20G
+-- df -h 发现没有改变，要对文件系统扩容, 'xfs_growfs 扩展名'，或者 'resize2fs -f 扩展名'
+$ xfs_growfs /dev/mapper/cl-root
+
+</pre>
+  
 # 配置阿里源
 
 <pre>
