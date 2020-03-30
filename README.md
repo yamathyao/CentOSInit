@@ -184,6 +184,15 @@ vi /etc/selinux/config
 将 SELINUX=enforcing 改为 SELINUX=disabled
 </pre>
 
+配置docker
+<pre>
+$ vim /etc/sysconfig/docker
+</pre>
+<pre>
+OPTIONS='--selinux-enabled --log-driver=json-file --log-opt max-size=100m --log-opt max-file=5 --signature-verification=false'
+</pre>
+
+
 # 启动minikube
 <pre>
 minikube start --vm-driver=none --registry-mirror=https://registry.docker-cn.com
