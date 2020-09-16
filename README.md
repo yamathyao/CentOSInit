@@ -60,6 +60,11 @@
   <pre>
   service network restart
   </pre>
+  如果遇到 ipv4 forward 不可用
+  <pre>
+  /usr/lib/sysctl.d/00-system.conf
+  添加 net.ipv4.ip_forward=1
+  </pre>
   
 6、磁盘扩展
 
